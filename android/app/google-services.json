@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "653337980553",
+    "firebase_url": "https://al-ghazawi-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "al-ghazawi",
+    "storage_bucket": "al-ghazawi.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:653337980553:android:bd9e37d76e6613e1e46058",
+        "android_client_info": {
+          "package_name": "com.alqhazawi.app.alqhazawi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVqR1Q-nCcZazjEj55Ke7ycIxzAE13Mjk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
