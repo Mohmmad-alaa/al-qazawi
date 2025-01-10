@@ -141,6 +141,33 @@ class ProductsAndOffersScreen extends StatelessWidget {
           ),
         ],
       ),
+        bottomNavigationBar: BottomNavigationBar(
+          onTap: (index) {
+            if (index == 1) {
+              // الانتقال إلى صفحة "إضافة"
+              null;
+            } else if (index == 0) {
+              // الانتقال إلى صفحة "الرئيسية"
+
+              Navigator.pop(
+                context);
+
+            }
+          },
+          items: const [
+
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home, size: 20),
+              label: 'الرئيسية',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.local_offer, size: 20),
+              label: 'العروضات',
+            ),
+          ],
+          selectedFontSize: 12,
+          unselectedFontSize: 12,
+        )
     );
   }
 }

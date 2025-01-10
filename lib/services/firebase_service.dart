@@ -1,6 +1,12 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../api/userModel.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:file_picker/file_picker.dart';
+
+import '../screens/UserDetailsPage.dart';
 
 class FirebaseService with ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -9,7 +15,10 @@ class FirebaseService with ChangeNotifier {
   UserModel? get currentUser => _currentUser;
 
   Future<void> loginOrRegisterUser(
-      String phoneNumber, Function(bool, String) callback) async {
+      BuildContext context,
+      String phoneNumber,
+      Function(bool, String) callback,
+      ) async {
     try {
       final QuerySnapshot snapshot = await _firestore
           .collection('users')
@@ -34,12 +43,20 @@ class FirebaseService with ChangeNotifier {
         _currentUser =
             UserModel(id: docRef.id, phone: phoneNumber, role: 'customer');
         notifyListeners();
-        callback(true, "تم إنشاء حساب جديد وتسجيل الدخول!");
+        // التنقل إلى صفحة إدخال بيانات المستخدم الجديد
+        callback(true, "تم إنشاء حساب جديد، يُرجى إدخال بياناتك.");
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => UserDetailsPage(userId: docRef.id),
+          ),
+        );
       }
     } catch (e) {
       callback(false, "حدث خطأ أثناء تسجيل الدخول: ${e.toString()}");
     }
   }
+
 
   Future<List<Map<String, dynamic>>> fetchProjects() async {
     try {
@@ -55,4 +72,73 @@ class FirebaseService with ChangeNotifier {
       throw Exception('Failed to fetch projects');
     }
   }
+
+  Future<List<Map<String, dynamic>>> fetchProjectsByUserId(
+      String userId) async {
+    try {
+      // استعلام لجلب المشاريع بناءً على userId
+      final snapshot = await _firestore
+          .collection('projects')
+          .where('userId',
+              isEqualTo:
+                  userId) // استخدام arrayContains إذا كان الحقل عبارة عن قائمة
+          .get();
+
+      return snapshot.docs.map((doc) {
+        return {
+          'id': doc.id, // لحفظ معرف المستند
+          ...doc.data(), // تضمين جميع البيانات
+        };
+      }).toList();
+    } catch (e) {
+      print('Error fetching projects: $e');
+      throw Exception('Failed to fetch projects');
+    }
+  }
+
+  Future<void> uploadPdfToFirebase(BuildContext context) async {
+    // اختيار ملف PDF
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+    );
+
+    if (result != null) {
+      File file = File(result.files.single.path!);
+
+      // رفع الملف إلى Firebase Storage
+      try {
+        String fileName = result.files.single.name;
+
+        // الحصول على مرجع Firebase Storage
+        Reference storageRef =
+            FirebaseStorage.instance.ref().child('pdfs/$fileName');
+
+        // رفع الملف
+        UploadTask uploadTask = storageRef.putFile(file);
+
+        // متابعة حالة التحميل
+        TaskSnapshot snapshot = await uploadTask;
+        String downloadUrl = await snapshot.ref.getDownloadURL();
+
+        // عرض رسالة النجاح
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تم رفع الملف بنجاح: $downloadUrl')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('حدث خطأ أثناء رفع الملف: $e')),
+        );
+      }
+    } else {
+      // المستخدم لم يختار ملفًا
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لم يتم اختيار ملف')),
+      );
+    }
+  }
+  // التنقل إلى صفحة إدخال بيانات المستخدم
+
 }
+
+

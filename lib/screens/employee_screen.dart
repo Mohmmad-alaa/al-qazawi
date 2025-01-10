@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../services/firebase_service.dart';
 import 'add_project.dart';
 import 'dashboard.dart';
 import 'information_cart.dart';
+import 'login_screen.dart';
 
 class ProjectsScreen extends StatefulWidget {
   String userId;
@@ -18,10 +20,10 @@ class ProjectsScreen extends StatefulWidget {
 }
 
 class _ProjectsScreenState extends State<ProjectsScreen> {
-  final FirebaseService _firebaseService = FirebaseService();
-  List<Map<String, dynamic>> projects = [];
 
-  void fetchProjects() async {
+ // Map<String, dynamic> projectsss ;
+
+  /*void fetchProjects() async {
     try {
       final fetchedProjects = await _firebaseService.fetchProjects();
       setState(() {
@@ -33,7 +35,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       print('Error: $e');
       // يمكنك إضافة إشعار أو رسالة خطأ للمستخدم هنا
     }
-  }
+  }*/
 
   final PageController _pageController = PageController();
   int _currentPage = 0;
@@ -43,7 +45,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   void initState() {
     super.initState();
 
-    fetchProjects();
+   // fetchProjects();
   }
 
   @override
@@ -98,6 +100,49 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                 },
               )
             : null,
+        actions: [ElevatedButton.icon(
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('تأكيد تسجيل الخروج'),
+                content: const Text('هل أنت متأكد أنك تريد تسجيل الخروج؟'),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                     // onLogout(); // تنفيذ منطق تسجيل الخروج
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) =>  LoginPage()),
+                            (route) => false, // إزالة جميع الصفحات من سجل التنقل
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                    ),
+                    child: const Text('تسجيل الخروج', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            );
+          },
+          icon: const Icon(Icons.logout, color: Colors.white),
+          label: const Text('تسجيل الخروج', style: TextStyle(color: Colors.white)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+          ),
+        )],
       ),
       body: selectedCategory == null
           ? _buildCategoryList()
@@ -223,15 +268,6 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   }
 
   Widget _buildProjectsList() {
-    // تصفية المشاريع بناءً على الفئة والسنة
-    //List<Map<String, dynamic>> filteredProjects = projects; // عرض كل المشاريع
-
-    List<Map<String, dynamic>> filteredProjects = projects.where((project) {
-      return project['category'] == selectedType &&
-          (selectedYear.toString().isEmpty ||
-              project['created_at'] == selectedYear);
-    }).toList();
-
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Column(
@@ -246,8 +282,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               ),
               Text(
                 '$selectedYear',
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               IconButton(
                 icon: const Icon(Icons.arrow_forward_ios, size: 20),
@@ -265,6 +300,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
             child: TextField(
               controller: searchController,
               textDirection: TextDirection.rtl,
+              onChanged: (value) {
+                setState(() {}); // تحديث الواجهة عند تغيير النص
+              },
               decoration: InputDecoration(
                 labelText: 'ابحث عن مشروع...',
                 labelStyle: TextStyle(
@@ -272,92 +310,127 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                   fontSize: 12,
                 ),
                 border: InputBorder.none,
-                prefixIcon:
-                    const Icon(Icons.search, color: Colors.blue, size: 20),
+                prefixIcon: const Icon(Icons.search, color: Colors.blue, size: 20),
                 contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
             ),
           ),
           const SizedBox(height: 8),
-          // عرض المشاريع
+          // عرض المشاريع باستخدام StreamBuilder
           Expanded(
-            child: filteredProjects.isEmpty
-                ? const Center(child: Text('لا توجد مشاريع لهذا الاختيار'))
-                : GridView.builder(
-              padding: const EdgeInsets.all(4),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 4,
-                mainAxisSpacing: 4,
-              ),
-              itemCount: filteredProjects.length,
-              itemBuilder: (context, index) {
-                var project = filteredProjects[index];
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('projects').snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      PageRouteBuilder(
-                        pageBuilder: (context, animation, secondaryAnimation) =>
-                            ProjectDetailsScreen(project: project, role: role),
-                        transitionsBuilder:
-                            (context, animation, secondaryAnimation, child) {
-                          const begin = Offset(0.0, 1.0); // يبدأ من الأسفل
-                          const end = Offset.zero; // ينتهي في المركز
-                          const curve = Curves.easeInOut; // منحنى الحركة
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text('لا توجد مشاريع متاحة'));
+                }
 
-                          var tween = Tween(begin: begin, end: end)
-                              .chain(CurveTween(curve: curve));
-                          var offsetAnimation = animation.drive(tween);
+                // تحويل البيانات إلى قائمة من الخرائط مع تضمين id
+                List<Map<String, dynamic>> projects = snapshot.data!.docs.map((doc) {
+                  // إضافة id مع البيانات
+                  Map<String, dynamic> projectData = doc.data() as Map<String, dynamic>;
+                  projectData['id'] = doc.id; // تضمين id الخاص بالمشروع
+                  return projectData;
+                }).toList();
 
-                          return SlideTransition(
-                            position: offsetAnimation,
-                            child: child,
-                          );
-                        },
+                // تصفية المشاريع
+                List<Map<String, dynamic>> filteredProjects = projects.where((project) {
+                  final isCategoryMatch = project['category'] == selectedType;
+                  final isYearMatch = selectedYear.toString().isEmpty ||
+                      project['created_at'] == selectedYear;
+                  final isSearchMatch = searchController.text.isEmpty ||
+                      project['project_name']
+                          .toString()
+                          .toLowerCase()
+                          .contains(searchController.text.toLowerCase());
+                  return isCategoryMatch && isYearMatch && isSearchMatch;
+                }).toList();
+
+                // عرض المشاريع
+                return filteredProjects.isEmpty
+                    ? const Center(child: Text('لا توجد مشاريع لهذا الاختيار'))
+                    : GridView.builder(
+                  padding: const EdgeInsets.all(4),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 4,
+                    mainAxisSpacing: 4,
+                  ),
+                  itemCount: filteredProjects.length,
+                  itemBuilder: (context, index) {
+                    var  project = filteredProjects[index];
+                    String projectId = project['id'];
+                    //projectsss = filteredProjects[index];
+                    print(project);
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder: (context, animation, secondaryAnimation) =>
+                                ProjectDetailsScreen(role: role, project: projectId),
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              const begin = Offset(0.0, 1.0); // يبدأ من الأسفل
+                              const end = Offset.zero; // ينتهي في المركز
+                              const curve = Curves.easeInOut; // منحنى الحركة
+
+                              var tween = Tween(begin: begin, end: end)
+                                  .chain(CurveTween(curve: curve));
+                              var offsetAnimation = animation.drive(tween);
+
+                              return SlideTransition(
+                                position: offsetAnimation,
+                                child: child,
+                              );
+                            },
+                          ),
+                        );
+                      },
+                      child: Card(
+                        color: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(100), // دائرة بالكامل
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center, // وضع المحتوى في المنتصف
+                          children: [
+                            // النص في منتصف الدائرة
+                            Text(
+                              "👤\n\n ${project['project_name']}",
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                            // أيقونة التوجه
+                            const Positioned(
+                              bottom: 10, // مسافة من الأسفل
+                              child: Icon(
+                                Icons.arrow_forward_ios,
+                                color: Colors.blue,
+                                size: 24,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },
-                  child: Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(100), // دائرة بالكامل
-                    ),
-                    child: Stack(
-                      alignment: Alignment.center, // وضع المحتوى في المنتصف
-                      children: [
-                        // النص في منتصف الدائرة
-                        Text(
-                          project['project_name'],
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                        // أيقونة التوجه
-                        const Positioned(
-                          bottom: 10, // مسافة من الأسفل
-                          child: Icon(
-                            Icons.arrow_forward_ios,
-                            color: Colors.blue,
-                            size: 24,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 );
               },
             ),
-          )
-
-
-
+          ),
         ],
       ),
     );
   }
+
+
 }

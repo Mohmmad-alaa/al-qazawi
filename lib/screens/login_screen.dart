@@ -32,9 +32,9 @@ class _PhoneLoginScreenState extends State<LoginPage> {
                   'assets/images/logo.jpg',
                   height: 120,
                 ),
-                SizedBox(height: 30),
+                const SizedBox(height: 30),
                 // عنوان الصفحة
-                Text(
+                const Text(
                   'مرحباً بك!',
                   style: TextStyle(
                     fontSize: 28,
@@ -42,7 +42,7 @@ class _PhoneLoginScreenState extends State<LoginPage> {
                     color: Colors.black87,
                   ),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Text(
                   'قم بتسجيل الدخول للمتابعة',
                   style: TextStyle(
@@ -50,7 +50,7 @@ class _PhoneLoginScreenState extends State<LoginPage> {
                     color: Colors.grey[600],
                   ),
                 ),
-                SizedBox(height: 150),
+                const SizedBox(height: 150),
                 // حقل إدخال رقم الهاتف
                 TextField(
                   controller: _phoneController,
@@ -67,18 +67,18 @@ class _PhoneLoginScreenState extends State<LoginPage> {
                     ),
                   ),
                 ),
-                SizedBox(height: 15),
+                const SizedBox(height: 15),
                 // زر تسجيل الدخول
                 if (_isLoading)
-                  CircularProgressIndicator()
+                  const CircularProgressIndicator()
                 else
                   ElevatedButton(
                     onPressed: () async {
                       String phoneNumber = _phoneController.text.trim();
 
-                      if (phoneNumber.isEmpty) {
+                      if (phoneNumber.isEmpty || phoneNumber.length != 10) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('يرجى إدخال رقم الهاتف')),
+                          const SnackBar(content: Text('يرجى إدخال رقم الهاتف')),
                         );
                         return;
                       }
@@ -89,6 +89,7 @@ class _PhoneLoginScreenState extends State<LoginPage> {
 
                       // تسجيل الدخول أو إنشاء حساب
                       await firebaseService.loginOrRegisterUser(
+                        context,
                         phoneNumber,
                             (success, message) {
                           setState(() {
@@ -129,13 +130,13 @@ class _PhoneLoginScreenState extends State<LoginPage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red[400],
                       foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(horizontal: 100, vertical: 15),
+                      padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 15),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
                       elevation: 5,
                     ),
-                    child: Text(
+                    child: const Text(
                       'تسجيل الدخول',
                       style: TextStyle(
                         fontSize: 18,
@@ -143,7 +144,7 @@ class _PhoneLoginScreenState extends State<LoginPage> {
                       ),
                     ),
                   ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
               ],
             ),
           ),

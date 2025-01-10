@@ -1,316 +1,376 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../services/firebase_service.dart';
+import '../widgets/ListManagmentScreen.dart';
 
-class ProjectDetailsScreen extends StatelessWidget {
-  final Map<String, dynamic> project;
+class ProjectDetailsScreen extends StatefulWidget {
+  final String project;
+  final String role;
+
+  const ProjectDetailsScreen({
+    Key? key,
+    required this.project,
+    required this.role,
+  }) : super(key: key);
+
+  @override
+  _ProjectDetailsScreenState createState() =>
+      _ProjectDetailsScreenState(projectN: project, role: role);
+}
+
+class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
+  String projectN;
   final role;
 
-  const ProjectDetailsScreen({Key? key, required this.project, required  this.role}) : super(key: key);
+  _ProjectDetailsScreenState({required this.projectN, required this.role});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('projects')
+                .doc(projectN)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const CircularProgressIndicator();
+              }
+              if (!snapshot.hasData || snapshot.data == null) {
+                return const Text('اسم المشروع غير متوفر');
+              }
 
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: ListView(
-          children: [
-            // عنوان المشروع
-            Card(
-              elevation: 4,
-              margin: const EdgeInsets.only(bottom: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Center(
-                  child: Text(
-                    project['project_name'] ?? 'اسم المشروع غير متوفر',
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blueAccent),
-                    textDirection: TextDirection.rtl,
-                  ),
+              final project = snapshot.data!.data() as Map<String, dynamic>;
+              return Text(
+                project['project_name'] ?? 'اسم المشروع غير متوفر',
+                style: const TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blueAccent,
                 ),
-              ),
-            ),
-
-            // تفاصيل المشروع
-           //_buildEditableCardDetail(context, Icons.date_range, 'تاريخ البدء', project['startDate']),
-            _buildEditableCardDetail(context, Icons.category, 'نوع المشروع', project['category']),
-            _buildEditableCardDetail(context, Icons.calendar_today, 'السنة', project['created_at'].toString()),
-
-
-            if (project.containsKey('infoCustomer'))
-              _buildEditablePaymentCard(context,project['infoCustomer'],  'معلومات الزبون' ),
-
-
-
-            if (project.containsKey('completion'))
-              _buildEditableCardDetail(context, Icons.percent, 'نسبة الإنجاز', project['completion']),
-
-            if (project.containsKey('features'))
-              _buildEditableCardDetail(context, Icons.star, 'الميزات', project['features']),
-
-            if (project.containsKey('filterCleaning'))
-              _buildEditableCardLink(context, Icons.cleaning_services, 'تنظيف الفلتر', project['filterCleaning']),
-
-            if (project.containsKey('remoteUsage'))
-              _buildEditableCardLink(context, Icons.settings_remote, 'استخدام الريموت', project['remoteUsage']),
-
-
-
-            if (project.containsKey('images'))
-              //_buildEditableImageGalleryCard(context, project['images']),
-
-            if (project.containsKey('contract') && role == 'admin')
-              _buildEditableCardDetail(context, Icons.description, 'اتفاقية العقد', project['contract']),
-
-
-
-            if (project.containsKey('templates'))
-              _buildEditableCardDetail(context, Icons.file_copy, 'النماذج', project['templates']),
-
-            if(role == 'admin')
-              if (project.containsKey('warranty'))
-                _buildEditableCardDetail(context, Icons.shield, 'الكفالة', project['warranty']),
-              if (project.containsKey('payments')&& role == 'admin')
-                _buildEditablePaymentCard(context, project['payments'],'دفعات'),
-              if (project.containsKey('MaterialPrice'))
-                _buildEditablePaymentCard(context,  project['MaterialPrice'],'اسعار المواد'),
-              if (project.containsKey('MaintenanceInstallationWorks'))
-                _buildEditablePaymentCard(context,  project['MaintenanceInstallationWorks'],'اعمال الصيانة والتركيب'),
-              if (project.containsKey('PriceModels'))
-                _buildEditablePaymentCard(context,  project['PriceModels'],'اسعار الوحدات والموديلات'),
-
-            if (project.containsKey('whatsapp'))
-              _buildEditableCardLink(context, FontAwesomeIcons.whatsapp, 'تواصل عبر واتساب', project['whatsapp']),
-            if (project.containsKey('model'))
-              _buildEditableCardLink(context, FontAwesomeIcons.info, 'موديل مكيف', project['model']),
-            if (project.containsKey('acSpecs'))
-              _buildEditablePaymentCard(context, project['acSpecs'],"مواصفات المكيف"),
-           //   _buildEditableCardLink(context, FontAwesomeIcons.info, 'مواصفات المكيف', project['acSpecs']),
-            if (project.containsKey('filters'))
-              _buildEditablePaymentCard(context, project['filters'],"فلاتر"),
-            if (project.containsKey('unitModels'))
-              _buildEditablePaymentCard(context, project['unitModels'],"موديلات الوحدات"),
-          ],
+                textAlign: TextAlign.center,
+              );
+            },
+          ),
+          centerTitle: true,
         ),
-      ),
-    );
-  }
+        body: StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('projects')
+                .doc(projectN)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-  Widget _buildEditableCardDetail(BuildContext context, IconData icon, String label, String value) {
-    return Card(
-      elevation: 3,
-      margin: EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            IconButton(
-              icon: Icon(Icons.edit, color: Colors.blueAccent),
-              onPressed: () => _showEditDialog(context, label, value),
-            ),
-            Expanded(
-              child: Text(
-                value,
-                style: TextStyle(fontSize: 16, color: Colors.black),
-                textAlign: TextAlign.right,
-                textDirection: TextDirection.rtl,
-              ),
-            ),
-            SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              textDirection: TextDirection.rtl,
-            ),
-            const SizedBox(width: 8),
-            Icon(icon, color: Colors.blueAccent),
-          ],
-        ),
-      ),
-    );
-  }
+              if (!snapshot.hasData || snapshot.data == null) {
+                return const Center(child: Text('لا توجد بيانات'));
+              }
 
-  Widget _buildEditableCardLink(BuildContext context, IconData icon, String label, String url) {
-    return Card(
-      elevation: 3,
-      margin: EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            IconButton(
-              icon: Icon(Icons.edit, color: Colors.blueAccent),
-              onPressed: () => _showEditDialog(context, label, url),
-            ),
-            Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  // منطق فتح الرابط
-                },
-                child: Text(
-                  url,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.blue,
-                    decoration: TextDecoration.underline,
-                  ),
-                  textAlign: TextAlign.right,
-                  textDirection: TextDirection.rtl,
-                ),
-              ),
-            ),
-            SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              textDirection: TextDirection.rtl,
-            ),
-            SizedBox(width: 8),
-            Icon(icon, color: Colors.green),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEditableImageGalleryCard(BuildContext context, List<String> images) {
-    return Card(
-      elevation: 3,
-      margin: EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.edit, color: Colors.blueAccent),
-                  onPressed: () {
-                    // منطق تعديل الصور
-                  },
-                ),
-                Text(
-                  'الصور:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  textDirection: TextDirection.rtl,
-                ),
-              ],
-            ),
-            SizedBox(height: 8),
-            SizedBox(
-              height: 100,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: images.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(images[index], width: 100, height: 100, fit: BoxFit.cover),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEditablePaymentCard(BuildContext context, List<dynamic> payments,title) {
-    return Card(
-      elevation: 3,
-      margin: EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.blueAccent),
-                  onPressed: () {
-                    // منطق تعديل الدفعات
-
-
-
-                  },
-                ),
-                Text(
-                  '$title:',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  textDirection: TextDirection.rtl,
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ...payments.map((payment) {
+              final project = snapshot.data!.data() as Map<String, dynamic>;
+              print(project);
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                padding: const EdgeInsets.all(12.0),
+                child: GridView.count(
+                  crossAxisCount: 2, // عدد الأعمدة
+                  crossAxisSpacing: 12.0, // المسافة الأفقية بين العناصر
+                  mainAxisSpacing: 12.0, // المسافة العمودية بين العناصر
                   children: [
-                    Expanded(
-                      child: Text(
-                        payment,
-                        style: const TextStyle(fontSize: 14, color: Colors.black),
-                        textAlign: TextAlign.right,
-                        textDirection: TextDirection.rtl,
-                      ),
-                    ),
-                    const Icon(Icons.payment, color: Colors.orange),
+                    _buildEditableCardDetail(context, Icons.category,
+                        'نوع المشروع', project['category'], 'category'),
+                    _buildEditableCardDetail(
+                        context,
+                        Icons.calendar_today,
+                        'السنة',
+                        project['created_at'].toString(),
+                        "created_at"),
+                    if (project.containsKey('infoCustomer'))
+                      _buildEditableCardDetail(
+                          context,
+                          Icons.info,
+                          'معلومات الزبون',
+                          project['infoCustomer'],
+                          'infoCustomer'),
+                    if (project.containsKey('warranty'))
+                      _buildEditableCardDetail(context, Icons.shield,
+                          'الكفالة', project['warranty'], 'warranty'),
+                    if (project.containsKey('completion'))
+                      _buildEditableCardDetail(context, Icons.percent,
+                          'نسبة الإنجاز', project['completion'], "completion"),
+                    if (project.containsKey('features'))
+                      _buildEditablePaymentCard(context, project['features'],
+                          'الميزات', Icons.ac_unit, 'features', project['id']),
+                    if (project.containsKey('filterCleaning'))
+                      _buildEditableCardDetail(
+                          context,
+                          Icons.cleaning_services,
+                          'تنظيف الفلتر',
+                          project['filterCleaning'],
+                          'filterCleaning'),
+                    if (project.containsKey('remoteUsage'))
+                      _buildEditableCardDetail(
+                          context,
+                          Icons.settings_remote,
+                          'استخدام الريموت',
+                          project['remoteUsage'],
+                          'remoteUsage'),
+                    if (project.containsKey('contract') && role == 'admin')
+                      _buildEditableCardDetail(context, Icons.description,
+                          'اتفاقية العقد', project['contract'], 'contract'),
+                    if (project.containsKey('unitModels'))
+                      _buildEditablePaymentCard(
+                          context,
+                          project['unitModels'],
+                          'الوحدات والموديلات',
+                          Icons.ac_unit,
+                          'unitModels',
+                          projectN),
+                    if (project.containsKey('Equipment'))
+                      _buildEditablePaymentCard(
+                          context,
+                          project['Equipment'],
+                          'المعدات اللازمة',
+                          Icons.info,
+                          'Equipment',
+                          projectN),
+                    if (project.containsKey('templates'))
+                      _buildEditableCardDetail(context, Icons.picture_as_pdf,
+                          'ملف PDF', project['templates'], 'templates'),
+                    if (role == 'admin')
+
+                    if (project.containsKey('payments') && role == 'admin')
+                      _buildEditablePaymentCard(context, project['payments'],
+                          'دفعات', Icons.ac_unit, 'payments', projectN),
+                    if (project.containsKey('MaterialPrice') && role == 'admin')
+                      _buildEditablePaymentCard(
+                          context,
+                          project['MaterialPrice'],
+                          'اسعار المواد',
+                          Icons.ac_unit,
+                          'MaterialPrice',
+                          projectN),
+                    if (project.containsKey('MaintenanceInstallationWorks') &&
+                        role == 'admin')
+                      _buildEditablePaymentCard(
+                          context,
+                          project['MaintenanceInstallationWorks'],
+                          'اعمال الصيانة والتركيب',
+                          Icons.ac_unit,
+                          'MaintenanceInstallationWorks',
+                          projectN),
+                    if (project.containsKey('PriceModels') && role == 'admin')
+                      _buildEditablePaymentCard(
+                          context,
+                          project['PriceModels'],
+                          'اسعار الوحدات والموديلات',
+                          Icons.ac_unit,
+                          'PriceModels',
+                          projectN),
+                    if (project.containsKey('whatsapp'))
+                      _buildEditableCardDetail(
+                          context,
+                          FontAwesomeIcons.whatsapp,
+                          'تواصل عبر واتساب',
+                          project['whatsapp'],
+                          'whatsapp'),
+                    if (project.containsKey('model'))
+                      _buildEditableCardDetail(context, FontAwesomeIcons.info,
+                          'موديل مكيف', project['model'], 'model'),
+                    if (project.containsKey('acSpecs'))
+                      _buildEditablePaymentCard(
+                          context,
+                          project['acSpecs'],
+                          "مواصفات المكيف",
+                          Icons.ac_unit,
+                          'acSpecs',
+                          project['id']),
+                    if (project.containsKey('filters'))
+                      _buildEditableCardDetail(context, Icons.info, "فلاتر",
+                          project['filters'], 'filters'),
                   ],
                 ),
               );
-            }).toList(),
-          ],
+            }));
+  }
+
+  Widget _buildEditableCardDetail(BuildContext context, IconData icon,
+      String label, String value, String f) {
+    return InkWell(
+      onTap: () {
+        _showDetailDialog(context, label, value);
+      },
+      child: ClipOval(
+        child: Card(
+          elevation: 0,
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(100), // الحواف الدائرية
+          ),
+          child: Container(
+            width: 190,
+            height: 190,
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: Colors.blueAccent, size: 30),
+                const SizedBox(height: 8),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                  textDirection: TextDirection.rtl,
+                ),
+                const SizedBox(height: 8),
+                IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.blueAccent),
+                  onPressed: () => _showEditDialog(context, f, value, label),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
-  void _showEditDialog(BuildContext context, String field, String value) {
+  void _showDetailDialog(BuildContext context, String label, String value) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(label, textDirection: TextDirection.rtl),
+          content: SingleChildScrollView(
+            child: Text(
+              value,
+              textDirection: TextDirection.rtl,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('إغلاق'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildEditablePaymentCard(BuildContext context, List<dynamic> payments,
+      String titlee, IconData icon, String f, String id) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(100), // الحواف الدائرية
+      ),
+      child: ClipOval(
+        child: InkWell(
+          // لجعل البطاقة قابلة للضغط
+          onTap: () {
+            //_showPaymentsDialog(context, titlee, payments);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ListManagementScreen(
+                  initialData: payments, // البيانات الأولية
+                  documentId: id, // معرف الوثيقة
+                  fieldName: f,
+                  title: titlee, // اسم الحقل
+                ),
+              ),
+            );
+          },
+          child: Container(
+            width: 190,
+            height: 190,
+            color: Colors.white,
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Icon(
+                  icon,
+                  color: Colors.blueAccent,
+                  size: 35,
+                ),
+                Text(
+                  '$titlee:', // عرض العنوان
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                  textDirection: TextDirection.rtl,
+                ),
+                /* IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.blueAccent),
+                  onPressed: () {
+
+                    //_showEditDialogList(context, f, payments);
+                  },
+                ),*/
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showEditDialog(
+      BuildContext context, String field, String value, String title) {
     TextEditingController controller = TextEditingController(text: value);
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('تعديل $field'),
+          title: Text('تعديل $title'),
           content: TextField(
             controller: controller,
             textDirection: TextDirection.rtl,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               border: OutlineInputBorder(),
               labelText: 'أدخل القيمة الجديدة',
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(context).pop();
-                // منطق حفظ القيمة المعدلة
+
+                // منطق حفظ القيمة المعدلة (Firebase كمثال)
+                try {
+                  await FirebaseFirestore.instance
+                      .collection('projects') // اسم المجموعة
+                      .doc(projectN) // معرف المشروع
+                      .update({field: controller.text}); // تحديث الحقل
+
+                  // تحديث الواجهة
+                  /*setState(() {
+                    project[field] = controller.text; // تحديث الحقل محليًا
+                  });*/
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('$title تم تحديثه بنجاح')),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('حدث خطأ: $e')),
+                  );
+                }
               },
-              child: Text('حفظ'),
+              child: const Text('حفظ'),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('إلغاء'),
+              child: const Text('إلغاء'),
             ),
           ],
         );

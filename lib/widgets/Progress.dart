@@ -4,15 +4,21 @@ class ProgressIcon extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final double progress;
+  final double percentage; // نسبة الإنجاز من 0 إلى 100.
 
   const ProgressIcon({
     Key? key,
     required this.icon,
     required this.label,
     required this.onTap,
-    required this.progress, // نسبة الإنجاز من 0 إلى 1.
+    required this.percentage, // نسبة الإنجاز من 0 إلى 100.
   }) : super(key: key);
+
+  // دالة لتحويل النسبة المئوية إلى نسبة بين 0 و 1.
+  double _convertPercentageToProgress(double percentage) {
+    return percentage / 100;
+  }
+
 
   // دالة لتحديد لون المؤشر بناءً على نسبة الإنجاز.
   Color getProgressColor(double progress) {
@@ -23,6 +29,8 @@ class ProgressIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    double progress = _convertPercentageToProgress(percentage); // تحويل النسبة المئوية إلى نسبة بين 0 و 1.
+
     return GestureDetector(
       onTap: onTap,
       child: Column(

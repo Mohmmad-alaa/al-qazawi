@@ -14,13 +14,20 @@ class AddProjectScreen extends StatefulWidget {
 class _AddProjectScreenState extends State<AddProjectScreen> {
   String? selectedCategory;
 
+  String? selectedCustomerUserId; // لتخزين userId الخاص بالعميل
+  String? selectedCustomerPhone;
+
+
   final TextEditingController _projectNameController = TextEditingController();
   final TextEditingController _startDateController = TextEditingController();
   final TextEditingController _contactNumberController = TextEditingController();
 
   final TextEditingController _dateController = TextEditingController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
+  /*List<Map<String, String>> categories = [
+    {'name': 'عادي'},
+    {'name': 'VRF'},
+  ];*/
   final List<String> categories = ['عادي', 'VRF'];
   String userId;
   String role;
@@ -30,6 +37,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('إضافة مشروع'),
         centerTitle: true,
@@ -79,17 +87,43 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                 },
                 child: Card(
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(80),
                   ),
-                  elevation: 4,
-                  child: Center(
-                    child: Text(
-                      category,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                  elevation: 0,
+                  color: Colors.white,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        flex: 3, // تخصيص 3 أجزاء من الارتفاع للصورة
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(16),
+                            ),
+                            image: DecorationImage(
+                              image: category == 'VRF'
+                                  ? AssetImage('assets/images/CH.jpg')
+                                  : AssetImage('assets/images/normal.jpg'),
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                      Expanded(
+                        flex: 1, // تخصيص جزء واحد من الارتفاع للنص
+                        child: Center(
+                          child: Text(
+                            category,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -113,11 +147,13 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           const SizedBox(height: 20),
           if (selectedCategory == 'عادي') ...[
             _buildTextField('اسم المشروع', _projectNameController, Icons.assignment),
-            _buildTextField('أرقام التواصل', _contactNumberController, Icons.phone),
+            //_buildTextField('أرقام التواصل', _contactNumberController, Icons.phone),
+            _buildCustomerSelector(),
           //  _buildTextField('السنة', _dateController, Icons.date_range),
           ] else if (selectedCategory == 'VRF') ...[
             _buildTextField('اسم المشروع', _projectNameController, Icons.assignment),
-            _buildTextField('أرقام التواصل', _contactNumberController, Icons.phone),
+           // _buildTextField('أرقام التواصل', _contactNumberController, Icons.phone),
+            _buildCustomerSelector(),
          //   _buildTextField('السنة', _dateController, Icons.date_range),
            // _buildPdfUploader(),
           ],
@@ -181,22 +217,60 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     );
   }
 
- /* Widget _buildPdfUploader() {
+  Widget _buildCustomerSelector() {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
-      child: ListTile(
-        leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
-        title: const Text('رفع اتفاقية PDF'),
-        trailing: const Icon(Icons.upload_file, color: Colors.blue),
-        onTap: () {
-          // إضافة وظيفة اختيار الملف
-        },
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'اختيار العميل:',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            StreamBuilder<QuerySnapshot>(
+              stream: _firestore.collection('users').snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final customers = snapshot.data!.docs;
+
+                return DropdownButton<String>(
+                  isExpanded: true,
+                  value: selectedCustomerPhone,
+                  items: customers.map((doc) {
+                    final phone = doc['phone'] as String;
+                    final userId = doc.id;
+                    return DropdownMenuItem<String>(
+                      value: phone,
+                      child: Text(phone),
+                      onTap: () {
+                        setState(() {
+                          selectedCustomerUserId = userId; // تخزين userId المختار
+                        });
+                      },
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedCustomerPhone = value;
+                    });
+                  },
+                  hint: const Text('اختر رقم العميل'),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
-  }*/
+  }
 
   void _saveData() async {
     if (_projectNameController.text.isEmpty) {
@@ -204,30 +278,37 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           .showSnackBar(const SnackBar(content: Text('يرجى إدخال اسم المشروع')));
       return;
     }
+    if (selectedCustomerPhone == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('يرجى اختيار العميل')));
+      return;
+    }
 
     try {
 
       // Create the map
       final projectData = {
-        'userId': widget.userId, // ربط المشروع بمعرف المستخدم
+        'infoCustomer':'',
+        'userId': selectedCustomerUserId, // ربط المشروع بمعرف المستخدم
         'category': selectedCategory,
         'project_name': _projectNameController.text,
-        'contact_number': selectedCategory == 'VRF' ? _contactNumberController.text : null,
+        'contact_number':_contactNumberController.text,
+        'customer_phone': selectedCustomerPhone, // إضافة رقم العميل
         'created_at': DateTime.now().year,
       };
 
 // Add conditional data
       if (selectedCategory == 'عادي') {
         projectData.addAll({
-          'completion': '1%',
-          'features': '',
+          'whatsapp': '',
+          'payments': [''],
+          'features': [''],
           'filterCleaning': '',
           'remoteUsage': '',
           'warranty': '',
           'model': '',
           'acSpecs': [''],
-          'filters': [''],
-          'unitModels': [''],
+          'filters': '',
           'PriceModels': [''],
           'MaterialPrice': [''],
           'MaintenanceInstallationWorks': [''],
@@ -235,10 +316,13 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       }
       if (selectedCategory == 'VRF') {
         projectData.addAll({
-          'completion': '1%',
+          'completion': '1',
           'images': [
             ""
           ],
+
+          'unitModels': [''],
+          'Equipment': [''],
           'contract': '',
           'payments': [''],
           'templates': '',

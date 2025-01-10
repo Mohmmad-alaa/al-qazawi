@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../widgets/Progress.dart';
 import 'ProductsAndOffersScreen.dart';
+import 'login_screen.dart';
 
 class MultiStepCategoryScreenn extends StatefulWidget {
   String userId;
@@ -15,15 +16,47 @@ class MultiStepCategoryScreenn extends StatefulWidget {
 
   @override
   _MultiStepCategoryScreenState createState() =>
-      _MultiStepCategoryScreenState(userId);
+      _MultiStepCategoryScreenState(userId,role);
 }
 
 class _MultiStepCategoryScreenState extends State<MultiStepCategoryScreenn> {
+
+  String id;
+  String role;
+  _MultiStepCategoryScreenState(this.id,this.role);
+
   final _firebaseService = FirebaseService();
   int currentStep = 0;
   String selectedCategory = '';
   Map<String, dynamic> selectedProject = {};
   String images = 'assets/images/CH.jpg';
+
+
+  List<Map<String, dynamic>> projectss = [];
+
+
+
+
+  void fetchProjects(userId) async {
+    try {
+      final fetchedProjects = await _firebaseService.fetchProjectsByUserId(userId);
+      setState(() {
+        projectss = fetchedProjects;
+        print(projectss);
+        print("------------------------------------------");
+      });
+    } catch (e) {
+      print('Error: $e');
+      // يمكنك إضافة إشعار أو رسالة خطأ للمستخدم هنا
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    print(widget.userId);
+    fetchProjects(widget.userId);
+  }
 
   final List<Map<String, dynamic>> categories = [
     {
@@ -163,9 +196,7 @@ class _MultiStepCategoryScreenState extends State<MultiStepCategoryScreenn> {
       ],
     },
   ];
-  String id;
 
-  _MultiStepCategoryScreenState(this.id);
 
   void goToProjects(String category) {
     setState(() {
@@ -202,6 +233,51 @@ class _MultiStepCategoryScreenState extends State<MultiStepCategoryScreenn> {
                     onPressed: goBack,
                   )
                 : null,
+            actions: [
+              ElevatedButton.icon(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('تأكيد تسجيل الخروج'),
+                      content: const Text('هل أنت متأكد أنك تريد تسجيل الخروج؟'),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            //onLogout(); // تنفيذ منطق تسجيل الخروج
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(builder: (context) =>  LoginPage()),
+                                  (route) => false, // إزالة جميع الصفحات من سجل التنقل
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                          ),
+                          child: const Text('تسجيل الخروج', style: TextStyle(color: Colors.white)),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.logout, color: Colors.black),
+                label: const Text('تسجيل الخروج', style: TextStyle(color: Colors.black)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                ),
+              )
+            ],
           ),
           body: AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
@@ -331,9 +407,25 @@ class _MultiStepCategoryScreenState extends State<MultiStepCategoryScreenn> {
   }
 
   Widget _buildProjectList() {
-    final category =
-    categories.firstWhere((cat) => cat['name'] == selectedCategory);
-    final projects = category['projects'];
+    List<Map<String, dynamic>> filterByCategory(String category) {
+      return projectss.where((item) => item['category'] == category).toList();
+    }
+
+    final projects = filterByCategory(selectedCategory);
+    print(projects);
+
+    if (projects.isEmpty) {
+      return Center(
+        child: Text(
+          'لا توجد مشاريع لعرضها في هذه الفئة',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
 
     return GridView.builder(
       padding: const EdgeInsets.all(16),
@@ -361,25 +453,21 @@ class _MultiStepCategoryScreenState extends State<MultiStepCategoryScreenn> {
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeInOut,
                 child: Card(
+                  color: Colors.white,
                   shape: const CircleBorder(), // شكل دائري بالكامل
-                  elevation: 4,
+                  elevation: 0,
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          project['name'],
+                          "👤\n\n ${project?['project_name'] ?? "لا بيانات"}",
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                           textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'تاريخ البدء: ${project['startDate']}',
-                          style: const TextStyle(fontSize: 14),
                         ),
                       ],
                     ),
@@ -394,12 +482,14 @@ class _MultiStepCategoryScreenState extends State<MultiStepCategoryScreenn> {
   }
 
 
+
   //final String phoneNumber = '+972568683466'; // رقم الهاتف مع رمز البلد إذا لزم الأمر
 
   Future<void> _openWhatsApp() async {
     try {
-      if (await canLaunchUrl(Uri.parse("https://wa.me/+972568683466"))) {
-        await launchUrl(Uri.parse("https://wa.me/+972568683466"),
+      String number = selectedProject['whatsapp'];
+      if (await canLaunchUrl(Uri.parse("https://wa.me/+$number"))) {
+        await launchUrl(Uri.parse("https://wa.me/+$number"),
             mode: LaunchMode.externalApplication);
       } else {
         // Inform the user that WhatsApp cannot be launched
@@ -422,7 +512,22 @@ class _MultiStepCategoryScreenState extends State<MultiStepCategoryScreenn> {
           label: 'واتساب',
           onTap: () => _openWhatsApp(),
         ),
-
+        DetailIcon(
+          icon: Icons.monetization_on, // الأيقونة التي تريدها
+          label: 'الدفعات', // النص الذي تريد عرضه
+          onTap: () => _showDetailsDialog(
+            'الدفعات',
+            (selectedProject['payments']as List<dynamic>?)?.join('\n') ?? 'لا يوجد معلومات متوفرة',
+          ),
+        ),
+        _buildDetailIcon(
+          icon: Icons.verified,
+          label: 'الكفالة',
+          onTap: () => _showDetailsDialog(
+            'الكفالة',
+            selectedProject['warranty'] ?? 'لا توجد كفالة متوفرة',
+          ),
+        ),
 
         if (selectedCategory == 'VRF') ...[
           DetailIcon(
@@ -430,7 +535,7 @@ class _MultiStepCategoryScreenState extends State<MultiStepCategoryScreenn> {
             label: 'معلومات الزبون', // النص الذي تريد عرضه
             onTap: () => _showDetailsDialog(
               'معلومات الزبون',
-              selectedProject['model'] ?? 'لا يوجد معلومات متوفرة',
+              selectedProject['infoCustomer'] ?? 'لا يوجد معلومات متوفرة',
             ),
           ),
           ProgressIcon(
@@ -438,18 +543,17 @@ class _MultiStepCategoryScreenState extends State<MultiStepCategoryScreenn> {
             label: "إنجاز المشروع",
             onTap: () => _showDetailsDialog(
               'خطوات المشروع',
-              (selectedProject['completionSteps'] as List<dynamic>?)
-                      ?.join('\n') ??
-                  'لا توجد خطوات متوفرة',
+              selectedProject['completion']
+                  ??'لا توجد خطوات متوفرة',
             ),
-            progress: 0.5, // نسبة الإنجاز
+            percentage:double.parse(selectedProject['completion']), // نسبة الإنجاز
           ),
           DetailIcon(
             icon: Icons.info, // الأيقونة التي تريدها
             label: 'موديلات الوحدات المطلوبة', // النص الذي تريد عرضه
             onTap: () => _showDetailsDialog(
               'موديلات الوحدات المطلوبة',
-              selectedProject['model'] ?? 'لا يوجد معلومات متوفرة',
+              (selectedProject['unitModels'] as List<dynamic>?)?.join('\n') ?? 'لا يوجد معلومات متوفرة',
             ),
           ),
           DetailIcon(
@@ -457,7 +561,7 @@ class _MultiStepCategoryScreenState extends State<MultiStepCategoryScreenn> {
             label: 'المعدات اللازمة', // النص الذي تريد عرضه
             onTap: () => _showDetailsDialog(
               'المعدات اللازمة',
-              selectedProject['model'] ?? 'لا يوجد معلومات متوفرة',
+              (selectedProject['Equipment'] as List<dynamic>?)?.join('\n') ?? 'لا يوجد معلومات متوفرة',
             ),
           ),
           _buildDetailIcon(
@@ -474,14 +578,7 @@ class _MultiStepCategoryScreenState extends State<MultiStepCategoryScreenn> {
             ),
           ),
         ] else if (selectedCategory == 'عادي') ...[
-          _buildDetailIcon(
-            icon: Icons.verified,
-            label: 'الكفالة',
-            onTap: () => _showDetailsDialog(
-              'الكفالة',
-              selectedProject['warranty'] ?? 'لا توجد كفالة متوفرة',
-            ),
-          ),
+
           DetailIcon(
             icon: Icons.info, // الأيقونة التي تريدها
             label: 'موديل المكيف', // النص الذي تريد عرضه
@@ -495,7 +592,7 @@ class _MultiStepCategoryScreenState extends State<MultiStepCategoryScreenn> {
             label: 'ميزات المكيف',
             onTap: () => _showDetailsDialog(
               'ميزات المكيف',
-              selectedProject['features'] ?? 'لا توجد ميزات متوفرة',
+              (selectedProject['features']as List<dynamic>?)?.join('\n') ?? 'لا توجد ميزات متوفرة',
             ),
           ),
           _buildDetailIcon(
@@ -503,7 +600,7 @@ class _MultiStepCategoryScreenState extends State<MultiStepCategoryScreenn> {
             label: 'تنظيف الفلتر',
             onTap: () => _showDetailsDialog(
               'تنظيف الفلتر',
-              selectedProject['filterCleaning'] ??
+              selectedProject['filters'] ??
                   'لا توجد معلومات تنظيف الفلتر',
             ),
           ),
@@ -543,8 +640,14 @@ class _MultiStepCategoryScreenState extends State<MultiStepCategoryScreenn> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(title),
-          content: Text(content),
+          title: Text(
+            title,
+            textDirection: TextDirection.rtl, // جعل النص يبدأ من اليمين.
+          ),
+          content: Text(
+            content,
+            textDirection: TextDirection.rtl, // جعل النص يبدأ من اليمين.
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -556,7 +659,7 @@ class _MultiStepCategoryScreenState extends State<MultiStepCategoryScreenn> {
     );
   }
 
-  void _showImagesDialog(List<String> images) {
+  void _showImagesDialog(List<dynamic> images) {
     showDialog(
       context: context,
       builder: (context) {
