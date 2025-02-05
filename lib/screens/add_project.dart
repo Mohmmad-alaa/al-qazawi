@@ -45,6 +45,32 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       body: selectedCategory == null
           ? _buildCategoryList() // عرض قائمة الفئات
           : _buildDataEntryForm(), // عرض نموذج البيانات
+      bottomNavigationBar: BottomNavigationBar(
+        onTap: (index) {
+          if (index == 1) {
+            // الانتقال إلى صفحة "إضافة"
+            Navigator.pop(
+              context// استبدل `AddPage` بصفحتك
+            );
+          } else if (index == 0) {
+            // الانتقال إلى صفحة "الرئيسية"
+
+            null;
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.add, size: 20),
+            label: 'اضافة',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home, size: 20),
+            label: 'الرئيسية',
+          ),
+        ],
+        selectedFontSize: 12,
+        unselectedFontSize: 12,
+      ),
     );
   }
 

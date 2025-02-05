@@ -3,15 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../services/firebase_service.dart';
 import '../widgets/ListManagmentScreen.dart';
+import 'PdfManagerPage.dart';
 
 class ProjectDetailsScreen extends StatefulWidget {
   final String project;
   final String role;
-
+  final String userId;
+  final String projectUserId;
   const ProjectDetailsScreen({
     Key? key,
     required this.project,
     required this.role,
+    required this.userId,
+    required this.projectUserId,
   }) : super(key: key);
 
   @override
@@ -22,6 +26,30 @@ class ProjectDetailsScreen extends StatefulWidget {
 class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
   String projectN;
   final role;
+
+  Map<String, dynamic>? userInfo;
+  bool isLoading = true;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUserData(widget.projectUserId);
+  }
+
+  Future<void> fetchUserData(String userId) async {
+    // إنشاء كائن من UserService
+    final userService = FirebaseService();
+
+    // جلب بيانات المستخدم
+    final data = await userService.getUserInfo(userId);
+
+    // تحديث حالة الشاشة
+    setState(() {
+      userInfo = data;
+      isLoading = false;
+    });
+  }
 
   _ProjectDetailsScreenState({required this.projectN, required this.role});
 
@@ -72,6 +100,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
               }
 
               final project = snapshot.data!.data() as Map<String, dynamic>;
+              //fetchUserData(project['userId']);
               print(project);
               return Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -88,13 +117,16 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                         'السنة',
                         project['created_at'].toString(),
                         "created_at"),
-                    if (project.containsKey('infoCustomer'))
+                    //showUserInfoDialog(context: context,userInfo: userInfo,onSave: (fetchUserData()){print("object");}),
+                    _buildInfoDetail(context, Icons.info_outline,
+                        'معلومات الزبون', project['userId'], 'userId'),
+                   /* if (project.containsKey('infoCustomer'))
                       _buildEditableCardDetail(
                           context,
                           Icons.info,
                           'معلومات الزبون',
                           project['infoCustomer'],
-                          'infoCustomer'),
+                          'infoCustomer'),*/
                     if (project.containsKey('warranty'))
                       _buildEditableCardDetail(context, Icons.shield,
                           'الكفالة', project['warranty'], 'warranty'),
@@ -103,7 +135,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                           'نسبة الإنجاز', project['completion'], "completion"),
                     if (project.containsKey('features'))
                       _buildEditablePaymentCard(context, project['features'],
-                          'الميزات', Icons.ac_unit, 'features', project['id']),
+                          'الميزات', Icons.ac_unit, 'features', projectN),
                     if (project.containsKey('filterCleaning'))
                       _buildEditableCardDetail(
                           context,
@@ -138,7 +170,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                           'Equipment',
                           projectN),
                     if (project.containsKey('templates'))
-                      _buildEditableCardDetail(context, Icons.picture_as_pdf,
+                      _buildEditPdfDetail(context, Icons.picture_as_pdf,
                           'ملف PDF', project['templates'], 'templates'),
                     if (role == 'admin')
 
@@ -187,10 +219,10 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                           "مواصفات المكيف",
                           Icons.ac_unit,
                           'acSpecs',
-                          project['id']),
-                    if (project.containsKey('filters'))
+                          projectN),
+                    /*if (project.containsKey('filters'))
                       _buildEditableCardDetail(context, Icons.info, "فلاتر",
-                          project['filters'], 'filters'),
+                          project['filters'], 'filters'),*/
                   ],
                 ),
               );
@@ -239,9 +271,94 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
           ),
         ),
       ),
+  );
+}
+Widget _buildEditPdfDetail(BuildContext context, IconData icon,
+      String label, String value, String f) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => PdfManagerPage()), // استبدل AddPage بصفحتك
+        );
+      },
+      child: ClipOval(
+        child: Card(
+          elevation: 0,
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(100), // الحواف الدائرية
+          ),
+          child: Container(
+            width: 190,
+            height: 190,
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: Colors.blueAccent, size: 30),
+                const SizedBox(height: 8),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                  textDirection: TextDirection.rtl,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
-
+  Widget _buildEditImageDetail(BuildContext context, IconData icon,
+      String label, String value, String f) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => PdfManagerPage()), // استبدل AddPage بصفحتك
+        );
+      },
+      child: ClipOval(
+        child: Card(
+          elevation: 0,
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(100), // الحواف الدائرية
+          ),
+          child: Container(
+            width: 190,
+            height: 190,
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: Colors.blueAccent, size: 30),
+                const SizedBox(height: 8),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                  textDirection: TextDirection.rtl,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
   void _showDetailDialog(BuildContext context, String label, String value) {
     showDialog(
       context: context,
@@ -344,7 +461,6 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
           actions: [
             TextButton(
               onPressed: () async {
-                Navigator.of(context).pop();
 
                 // منطق حفظ القيمة المعدلة (Firebase كمثال)
                 try {
@@ -360,11 +476,14 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('$title تم تحديثه بنجاح')),
                   );
+                 // Navigator.of(context).pop();
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('حدث خطأ: $e')),
                   );
+
                 }
+                Navigator.of(context).pop();
               },
               child: const Text('حفظ'),
             ),
@@ -377,4 +496,149 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
       },
     );
   }
+  Future<void> _saveUserDetails() async {
+      // إذا كانت البيانات صحيحة
+
+
+  }
+
+  Widget _buildInfoDetail(BuildContext context, IconData icon,
+      String label, String value, String f) {
+    return InkWell(
+      onTap: () {
+       // showUserInfoDialog(context: context,userInfo: userInfo,onSave: (f){print("");});
+
+        if (userInfo != null) {
+
+          showUserInfoDialog(
+            context: context,
+            userInfo: userInfo!,
+            onSave: (updatedUserInfo) {
+              // Handle updated user info here
+              print("Updated User Info: $updatedUserInfo");
+            },
+          );
+        } else {
+          print("User info is null");
+        }
+      },
+      child: ClipOval(
+        child: Card(
+          elevation: 0,
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(100), // الحواف الدائرية
+          ),
+          child: Container(
+            width: 190,
+            height: 190,
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: Colors.blueAccent, size: 30),
+                const SizedBox(height: 8),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                  textDirection: TextDirection.rtl,
+                ),
+                const SizedBox(height: 8),
+              /*  IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.blueAccent),
+                  onPressed: () => _showEditDialog(context, f, value, label),
+                ),*/
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+
+  Future<void> showUserInfoDialog({
+    required BuildContext context,
+    required Map<String, dynamic> userInfo,
+    required Function(Map<String, dynamic>) onSave,
+  }) async {
+    print(userInfo);
+    print("ff ----------------------------------------------------");
+    // إعداد المتحكمات
+    final TextEditingController nameController = TextEditingController(text: userInfo['name']);
+    final TextEditingController phoneController = TextEditingController(text: userInfo['phone']);
+    final TextEditingController addressController = TextEditingController(text: userInfo['address']);
+    String role = userInfo['role'];
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('معلومات المستخدم'),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // الاسم
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'الاسم',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // رقم الهاتف
+                Text("${userInfo['phone']}"),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: addressController,
+                  decoration: const InputDecoration(
+                    labelText: 'الموقع',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                print("************************");
+                try {
+                  await FirebaseFirestore.instance.collection('users').doc(widget.projectUserId).update({
+                    'name': nameController.text,
+                    'address': addressController.text,
+                    //'updated_at': FieldValue.serverTimestamp(),
+                  });
+                  print("************************");
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('تم حفظ البيانات بنجاح!')),
+                  );
+
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('حدث خطأ: ${e.toString()}')),
+                  );
+                }
+                Navigator.pop(context);
+              },
+              child: const Text('حفظ'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
 }

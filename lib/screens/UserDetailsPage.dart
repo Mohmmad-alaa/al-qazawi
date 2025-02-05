@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import 'login_screen.dart';
+
 class UserDetailsPage extends StatefulWidget {
   final String userId;
 
@@ -30,7 +32,14 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
           const SnackBar(content: Text('تم حفظ البيانات بنجاح!')),
         );
 
-        Navigator.pop(context); // العودة إلى الصفحة السابقة
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                LoginPage(),
+          ),
+        );
+        //Navigator.pop(context); // العودة إلى الصفحة السابقة
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('حدث خطأ: ${e.toString()}')),

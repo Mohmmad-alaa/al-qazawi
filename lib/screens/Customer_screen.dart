@@ -295,7 +295,7 @@ class _MultiStepCategoryScreenState extends State<MultiStepCategoryScreenn> {
                   context,
                   MaterialPageRoute(
                       builder: (context) =>
-                          ProductsAndOffersScreen()), // استبدل `AddPage` بصفحتك
+                          ProductsAndOffersByCategoryScreen()), // استبدل `AddPage` بصفحتك
                 );
               } else if (index == 1) {
                 // الانتقال إلى صفحة "الرئيسية"
@@ -461,8 +461,10 @@ class _MultiStepCategoryScreenState extends State<MultiStepCategoryScreenn> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        Text('👤',style: TextStyle(fontSize: 25),),
+                        SizedBox(height: 15,),
                         Text(
-                          "👤\n\n ${project?['project_name'] ?? "لا بيانات"}",
+                          "${project?['project_name'] ?? "لا بيانات"}",
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

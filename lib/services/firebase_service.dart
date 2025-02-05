@@ -39,13 +39,14 @@ class FirebaseService with ChangeNotifier {
           'phone': phoneNumber,
           'role': 'customer',
           'created_at': FieldValue.serverTimestamp(),
+          'name':''
         });
         _currentUser =
             UserModel(id: docRef.id, phone: phoneNumber, role: 'customer');
         notifyListeners();
         // التنقل إلى صفحة إدخال بيانات المستخدم الجديد
         callback(true, "تم إنشاء حساب جديد، يُرجى إدخال بياناتك.");
-        Navigator.push(
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => UserDetailsPage(userId: docRef.id),
@@ -137,7 +138,24 @@ class FirebaseService with ChangeNotifier {
       );
     }
   }
-  // التنقل إلى صفحة إدخال بيانات المستخدم
+  // دالة لجلب بيانات المستخدم بناءً على userId
+  Future<Map<String, dynamic>?> getUserInfo(String userId) async {
+    try {
+      // جلب الوثيقة من مجموعة "users" باستخدام userId
+      DocumentSnapshot userDoc = await _firestore.collection('users').doc(userId).get();
+
+      if (userDoc.exists) {
+        // إذا كانت الوثيقة موجودة، قم بإرجاع البيانات
+        return userDoc.data() as Map<String, dynamic>;
+      } else {
+        print('المستخدم غير موجود');
+        return null;
+      }
+    } catch (e) {
+      print('حدث خطأ أثناء جلب بيانات المستخدم: $e');
+      return null;
+    }
+  }
 
 }
 
